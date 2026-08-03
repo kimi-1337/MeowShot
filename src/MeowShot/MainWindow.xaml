@@ -1,0 +1,76 @@
+<Window x:Class="MeowShot.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MeowShot — Настройки"
+        Width="680" Height="690"
+        MinWidth="560" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="MeowShot" FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Text="by kimi · лёгкие снимки экрана для Windows 10"
+                       Margin="0,4,0,20" Foreground="Gray" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Горячая клавиша" FontSize="17" FontWeight="SemiBold" />
+                <Border Margin="0,8,0,18" Padding="14" CornerRadius="8" Background="#147C5CFC">
+                    <DockPanel>
+                        <TextBlock Text="Ctrl + Shift + S" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="Глобальный вызов захвата" Foreground="Gray"
+                                   HorizontalAlignment="Right" />
+                    </DockPanel>
+                </Border>
+
+                <TextBlock Text="Поведение" FontSize="17" FontWeight="SemiBold" />
+                <CheckBox x:Name="StartWithWindowsCheckBox" Content="Запускать MeowShot вместе с Windows" />
+                <CheckBox x:Name="IncludeCursorCheckBox" Content="Показывать курсор на снимке" />
+                <CheckBox x:Name="AllMonitorsCheckBox"
+                          Content="В режиме «Весь экран» захватывать сразу все мониторы" />
+
+                <Separator Margin="0,14" />
+                <TextBlock Text="Автоматическое сохранение" FontSize="17" FontWeight="SemiBold" />
+                <CheckBox x:Name="AutoSaveCheckBox" Content="Автоматически сохранять каждый снимок"
+                          Checked="AutoSaveCheckBox_Changed" Unchecked="AutoSaveCheckBox_Changed" />
+                <Grid Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="SaveDirectoryTextBox" Height="34" Padding="8,5" />
+                    <Button x:Name="BrowseButton" Grid.Column="1" Content="Выбрать…" Click="BrowseButton_Click" />
+                </Grid>
+
+                <Separator Margin="0,14" />
+                <TextBlock Text="История" FontSize="17" FontWeight="SemiBold" />
+                <CheckBox x:Name="HistoryCheckBox" Content="Хранить локальную историю снимков"
+                          Checked="HistoryCheckBox_Changed" Unchecked="HistoryCheckBox_Changed" />
+                <StackPanel x:Name="HistoryLimitPanel" Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Максимум снимков:" VerticalAlignment="Center" />
+                    <TextBox x:Name="HistoryLimitTextBox" Width="60" Margin="10,0,0,0"
+                             Padding="7,4" TextAlignment="Center" />
+                    <Button Content="Открыть историю" Margin="14,0,0,0" Click="OpenHistoryButton_Click" />
+                </StackPanel>
+
+                <TextBlock Margin="0,18,0,0" Foreground="Gray" TextWrapping="Wrap"
+                           Text="Снимки не отправляются в интернет. История хранится только в локальной папке пользователя и по умолчанию выключена." />
+            </StackPanel>
+        </ScrollViewer>
+
+        <DockPanel Grid.Row="2" Margin="0,22,0,0">
+            <Button Content="Новый снимок" HorizontalAlignment="Left" Click="CaptureButton_Click" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Отмена" Click="CancelButton_Click" />
+                <Button Content="Сохранить" Click="SaveButton_Click"
+                        Background="{StaticResource AccentBrush}" Foreground="White" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

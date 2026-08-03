@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.vscode/
+artifacts/
+TestResults/
+*.user
+*.suo
+*.nupkg
+*.pdb
+src/MeowShot/MeowShot.csproj.user

@@ -1,0 +1,76 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore MeowShot.sln
+
+      - name: Build
+        run: dotnet build MeowShot.sln -c Release --no-restore
+
+      - name: Publish self-contained x64 app
+        run: >-
+          dotnet publish src/MeowShot/MeowShot.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o artifacts/publish
+
+      - name: Startup smoke test
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath artifacts/publish/MeowShot.exe -PassThru
+          Start-Sleep -Seconds 4
+          if ($process.HasExited) {
+            throw "MeowShot exited during startup with code $($process.ExitCode)."
+          }
+          Stop-Process -Id $process.Id
+          $process.WaitForExit()
+
+      - name: Create portable archive
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/MeowShot-portable-x64.zip -CompressionLevel Optimal
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: '& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\MeowShot.iss'
+
+      - name: Upload portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeowShot-portable-x64
+          path: artifacts/MeowShot-portable-x64.zip
+          if-no-files-found: error
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeowShot-Setup-x64
+          path: artifacts/installer/MeowShot-Setup-x64.exe
+          if-no-files-found: error

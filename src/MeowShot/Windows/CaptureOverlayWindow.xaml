@@ -1,0 +1,48 @@
+<Window x:Class="MeowShot.Windows.CaptureOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Black"
+        Cursor="Cross"
+        KeyDown="Window_KeyDown"
+        PreviewMouseRightButtonDown="Window_PreviewMouseRightButtonDown">
+    <Grid x:Name="RootGrid" ClipToBounds="True">
+        <Image x:Name="DesktopImage" Stretch="Fill" />
+        <Canvas x:Name="DimCanvas" Background="Transparent"
+                MouseLeftButtonDown="DimCanvas_MouseLeftButtonDown"
+                MouseMove="DimCanvas_MouseMove"
+                MouseLeftButtonUp="DimCanvas_MouseLeftButtonUp" />
+
+        <Border x:Name="Toolbar"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,20,0,0"
+                Padding="6"
+                CornerRadius="10"
+                Background="#F0202020"
+                Panel.ZIndex="10">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="RectangleButton" Content="▭  Область" Tag="Rectangle" Click="ModeButton_Click" />
+                <Button x:Name="WindowButton" Content="▣  Окно" Tag="Window" Click="ModeButton_Click" />
+                <Button x:Name="ScreenButton" Content="▰  Экран" Tag="FullScreen" Click="ModeButton_Click" />
+                <Separator Margin="6,2" />
+                <Button Content="✕" ToolTip="Отмена (Esc)" Click="CancelButton_Click" />
+            </StackPanel>
+        </Border>
+
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,24"
+                Padding="12,7"
+                CornerRadius="7"
+                Background="#D0202020"
+                IsHitTestVisible="False"
+                Panel.ZIndex="10">
+            <TextBlock x:Name="HintText" Foreground="White" FontSize="14"
+                       Text="Зажмите левую кнопку мыши и выделите область · Esc — отмена" />
+        </Border>
+    </Grid>
+</Window>
