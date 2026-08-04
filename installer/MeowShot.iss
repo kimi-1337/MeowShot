@@ -1,5 +1,5 @@
 #define MyAppName "MeowShot"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.1.1"
 #define MyAppPublisher "kimi"
 #define MyAppExeName "MeowShot.exe"
 
@@ -26,6 +26,7 @@ VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=MeowShot installer
 VersionInfoProductName={#MyAppName}
+SetupIconFile=..\src\MeowShot\Assets\meowshot.ico
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"

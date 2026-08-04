@@ -12,4 +12,15 @@ public sealed class AppSettings
     public bool CaptureAllMonitorsInFullScreenMode { get; set; }
     public bool HistoryEnabled { get; set; }
     public int HistoryLimit { get; set; } = 20;
+    public bool ShowNotifications { get; set; } = true;
+    public bool ShowQuickActions { get; set; } = true;
+    public AfterCaptureBehavior AfterCaptureBehavior { get; set; } = AfterCaptureBehavior.CopyAndNotify;
+}
+
+public enum AfterCaptureBehavior
+{
+    CopyAndNotify,
+    CopyAndEdit,
+    CopyOnly,
+    SaveAndNotify
 }

@@ -4,7 +4,8 @@
         Title="MeowShot — Редактор"
         Width="1200" Height="820"
         MinWidth="760" MinHeight="520"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        KeyDown="Window_KeyDown">
     <Window.Resources>
         <Style x:Key="ToolButtonStyle" TargetType="RadioButton">
             <Setter Property="Foreground" Value="White" />
@@ -38,7 +39,15 @@
                              Style="{StaticResource ToolButtonStyle}" />
                 <RadioButton Content="Перо" Tag="Pen" GroupName="Tools" Checked="Tool_Checked"
                              IsChecked="True" Style="{StaticResource ToolButtonStyle}" />
+                <RadioButton Content="Кисть" Tag="Brush" GroupName="Tools" Checked="Tool_Checked"
+                             Style="{StaticResource ToolButtonStyle}" />
                 <RadioButton Content="Маркер" Tag="Highlighter" GroupName="Tools" Checked="Tool_Checked"
+                             Style="{StaticResource ToolButtonStyle}" />
+                <RadioButton Content="Размытие" Tag="Blur" GroupName="Tools" Checked="Tool_Checked"
+                             Style="{StaticResource ToolButtonStyle}" />
+                <RadioButton Content="Пиксели" Tag="Pixelate" GroupName="Tools" Checked="Tool_Checked"
+                             Style="{StaticResource ToolButtonStyle}" />
+                <RadioButton Content="Закраска" Tag="Fill" GroupName="Tools" Checked="Tool_Checked"
                              Style="{StaticResource ToolButtonStyle}" />
                 <RadioButton Content="Линия" Tag="Line" GroupName="Tools" Checked="Tool_Checked"
                              Style="{StaticResource ToolButtonStyle}" />
@@ -49,6 +58,8 @@
                 <RadioButton Content="Эллипс" Tag="Ellipse" GroupName="Tools" Checked="Tool_Checked"
                              Style="{StaticResource ToolButtonStyle}" />
                 <RadioButton Content="Текст" Tag="Text" GroupName="Tools" Checked="Tool_Checked"
+                             Style="{StaticResource ToolButtonStyle}" />
+                <RadioButton Content="Шаг" Tag="Step" GroupName="Tools" Checked="Tool_Checked"
                              Style="{StaticResource ToolButtonStyle}" />
                 <RadioButton Content="Ластик" Tag="Eraser" GroupName="Tools" Checked="Tool_Checked"
                              Style="{StaticResource ToolButtonStyle}" />
@@ -67,15 +78,16 @@
                         <ComboBoxItem Content="Белый" Tag="#FFFFFFFF" />
                         <ComboBoxItem Content="Чёрный" Tag="#FF000000" />
                     </ComboBox>
-                    <TextBlock Text="Толщина" Foreground="White" VerticalAlignment="Center" Margin="14,0,5,0" />
+                    <TextBlock x:Name="StrokeLabel" Text="Толщина" Foreground="White"
+                               VerticalAlignment="Center" Margin="14,0,5,0" />
                     <Slider x:Name="StrokeWidthSlider" Width="110" Minimum="1" Maximum="24" Value="4"
                             TickFrequency="1" IsSnapToTickEnabled="True" />
-                    <Button Content="↶ Отменить" Click="UndoButton_Click" />
-                    <Button Content="↷ Повторить" Click="RedoButton_Click" />
+                    <Button Content="↶ Отменить" ToolTip="Ctrl+Z" Click="UndoButton_Click" />
+                    <Button Content="↷ Повторить" ToolTip="Ctrl+Y" Click="RedoButton_Click" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Копировать" Click="CopyButton_Click" />
-                    <Button Content="Сохранить…" Click="SaveButton_Click"
+                    <Button Content="Копировать" ToolTip="Ctrl+C" Click="CopyButton_Click" />
+                    <Button Content="Сохранить…" ToolTip="Ctrl+S" Click="SaveButton_Click"
                             Background="{StaticResource AccentBrush}" Foreground="White" />
                 </StackPanel>
             </DockPanel>

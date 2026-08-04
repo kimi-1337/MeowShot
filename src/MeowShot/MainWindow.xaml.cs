@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using MeowShot.Services;
 using Forms = System.Windows.Forms;
 
@@ -25,6 +26,9 @@ public partial class MainWindow : Window
         StartWithWindowsCheckBox.IsChecked = settings.StartWithWindows;
         IncludeCursorCheckBox.IsChecked = settings.IncludeCursor;
         AllMonitorsCheckBox.IsChecked = settings.CaptureAllMonitorsInFullScreenMode;
+        NotificationsCheckBox.IsChecked = settings.ShowNotifications;
+        QuickActionsCheckBox.IsChecked = settings.ShowQuickActions;
+        SelectAfterCaptureBehavior(settings.AfterCaptureBehavior);
         AutoSaveCheckBox.IsChecked = settings.AutoSave;
         SaveDirectoryTextBox.Text = settings.SaveDirectory;
         HistoryCheckBox.IsChecked = settings.HistoryEnabled;
@@ -41,7 +45,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (AutoSaveCheckBox.IsChecked == true && string.IsNullOrWhiteSpace(SaveDirectoryTextBox.Text))
+        var afterCaptureBehavior = SelectedAfterCaptureBehavior();
+        if ((AutoSaveCheckBox.IsChecked == true || afterCaptureBehavior == AfterCaptureBehavior.SaveAndNotify)
+            && string.IsNullOrWhiteSpace(SaveDirectoryTextBox.Text))
         {
             MessageBox.Show("Выберите папку автоматического сохранения.", "MeowShot",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -52,6 +58,9 @@ public partial class MainWindow : Window
         settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
         settings.IncludeCursor = IncludeCursorCheckBox.IsChecked == true;
         settings.CaptureAllMonitorsInFullScreenMode = AllMonitorsCheckBox.IsChecked == true;
+        settings.ShowNotifications = NotificationsCheckBox.IsChecked == true;
+        settings.ShowQuickActions = QuickActionsCheckBox.IsChecked == true;
+        settings.AfterCaptureBehavior = afterCaptureBehavior;
         settings.AutoSave = AutoSaveCheckBox.IsChecked == true;
         settings.SaveDirectory = SaveDirectoryTextBox.Text.Trim();
         settings.HistoryEnabled = HistoryCheckBox.IsChecked == true;
@@ -85,6 +94,7 @@ public partial class MainWindow : Window
 
     private void AutoSaveCheckBox_Changed(object sender, RoutedEventArgs e) => UpdateEnabledStates();
     private void HistoryCheckBox_Changed(object sender, RoutedEventArgs e) => UpdateEnabledStates();
+    private void AfterCaptureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateEnabledStates();
 
     private void UpdateEnabledStates()
     {
@@ -93,10 +103,33 @@ public partial class MainWindow : Window
             return;
         }
 
-        var autoSave = AutoSaveCheckBox.IsChecked == true;
-        SaveDirectoryTextBox.IsEnabled = autoSave;
-        BrowseButton.IsEnabled = autoSave;
+        var usesSaveDirectory = AutoSaveCheckBox.IsChecked == true
+            || SelectedAfterCaptureBehavior() == AfterCaptureBehavior.SaveAndNotify;
+        SaveDirectoryTextBox.IsEnabled = usesSaveDirectory;
+        BrowseButton.IsEnabled = usesSaveDirectory;
         HistoryLimitPanel.IsEnabled = HistoryCheckBox.IsChecked == true;
+    }
+
+    private void SelectAfterCaptureBehavior(AfterCaptureBehavior behavior)
+    {
+        foreach (var item in AfterCaptureComboBox.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag as string, behavior.ToString(), StringComparison.Ordinal))
+            {
+                AfterCaptureComboBox.SelectedItem = item;
+                return;
+            }
+        }
+
+        AfterCaptureComboBox.SelectedIndex = 0;
+    }
+
+    private AfterCaptureBehavior SelectedAfterCaptureBehavior()
+    {
+        var value = (AfterCaptureComboBox?.SelectedItem as ComboBoxItem)?.Tag as string;
+        return Enum.TryParse<AfterCaptureBehavior>(value, out var behavior)
+            ? behavior
+            : AfterCaptureBehavior.CopyAndNotify;
     }
 
     private void CaptureButton_Click(object sender, RoutedEventArgs e)

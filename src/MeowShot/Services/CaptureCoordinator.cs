@@ -13,7 +13,7 @@ public sealed class CaptureCoordinator : IDisposable
     private BitmapSource? _desktopSnapshot;
     private NativeRect _virtualBounds;
 
-    public event Action<BitmapSource>? Captured;
+    public event Action<BitmapSource, CaptureAction>? Captured;
 
     public CaptureCoordinator(SettingsService settingsService)
     {
@@ -40,7 +40,7 @@ public sealed class CaptureCoordinator : IDisposable
 
             var windows = ScreenCaptureService.GetCapturableWindows();
             var session = new CaptureSession();
-            session.Finished += bounds => Finish(session, bounds);
+            session.Finished += (bounds, action) => Finish(bounds, action);
 
             foreach (var monitor in monitors.OrderBy(item => item.IsPrimary ? 0 : 1))
             {
@@ -51,7 +51,8 @@ public sealed class CaptureCoordinator : IDisposable
                     windows,
                     session,
                     _virtualBounds,
-                    _settingsService.Current.CaptureAllMonitorsInFullScreenMode);
+                    _settingsService.Current.CaptureAllMonitorsInFullScreenMode,
+                    _settingsService.Current.ShowQuickActions);
                 _overlays.Add(overlay);
                 overlay.Show();
             }
@@ -67,9 +68,8 @@ public sealed class CaptureCoordinator : IDisposable
         }
     }
 
-    private void Finish(CaptureSession session, NativeRect? selectedBounds)
+    private void Finish(NativeRect? selectedBounds, CaptureAction action)
     {
-        session.Finished -= bounds => Finish(session, bounds);
         CloseOverlays();
 
         try
@@ -77,7 +77,7 @@ public sealed class CaptureCoordinator : IDisposable
             if (selectedBounds.HasValue && _desktopSnapshot is not null)
             {
                 var result = ScreenCaptureService.Crop(_desktopSnapshot, selectedBounds.Value, _virtualBounds);
-                Captured?.Invoke(result);
+                Captured?.Invoke(result, action);
             }
         }
         catch (Exception exception)

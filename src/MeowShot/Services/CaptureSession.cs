@@ -9,7 +9,7 @@ internal sealed class CaptureSession
 
     internal CaptureMode Mode => _mode;
     internal event Action<CaptureMode>? ModeChanged;
-    internal event Action<NativeRect?>? Finished;
+    internal event Action<NativeRect?, CaptureAction>? Finished;
 
     internal void SetMode(CaptureMode mode)
     {
@@ -22,7 +22,7 @@ internal sealed class CaptureSession
         ModeChanged?.Invoke(mode);
     }
 
-    internal void Complete(NativeRect bounds)
+    internal void Complete(NativeRect bounds, CaptureAction action = CaptureAction.Default)
     {
         if (_finished)
         {
@@ -30,7 +30,7 @@ internal sealed class CaptureSession
         }
 
         _finished = true;
-        Finished?.Invoke(bounds);
+        Finished?.Invoke(bounds, action);
     }
 
     internal void Cancel()
@@ -41,6 +41,6 @@ internal sealed class CaptureSession
         }
 
         _finished = true;
-        Finished?.Invoke(null);
+        Finished?.Invoke(null, CaptureAction.Default);
     }
 }

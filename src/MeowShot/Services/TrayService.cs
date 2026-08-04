@@ -6,6 +6,7 @@ namespace MeowShot.Services;
 public sealed class TrayService : IDisposable
 {
     private readonly Forms.NotifyIcon _notifyIcon;
+    private readonly Icon _trayIcon;
     private Action? _notificationClick;
 
     public TrayService(
@@ -23,9 +24,11 @@ public sealed class TrayService : IDisposable
         menu.Items.Add("Настройки", null, (_, _) => settings());
         menu.Items.Add("Выход", null, (_, _) => exit());
 
+        _trayIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? string.Empty)
+            ?? (Icon)SystemIcons.Application.Clone();
         _notifyIcon = new Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = _trayIcon,
             Text = "MeowShot — Ctrl+Shift+S",
             ContextMenuStrip = menu,
             Visible = true
@@ -56,5 +59,6 @@ public sealed class TrayService : IDisposable
     {
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _trayIcon.Dispose();
     }
 }

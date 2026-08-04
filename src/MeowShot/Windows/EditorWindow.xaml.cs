@@ -21,6 +21,7 @@ public partial class EditorWindow : Window
     private Shape? _activeShape;
     private bool _drawing;
     private bool _eraserChanged;
+    private int _stepCounter = 1;
 
     public EditorWindow(BitmapSource bitmap)
     {
@@ -46,11 +47,16 @@ public partial class EditorWindow : Window
         if (sender is RadioButton { Tag: string value } && Enum.TryParse<EditorTool>(value, out var tool))
         {
             _tool = tool;
+            if (StrokeLabel is not null)
+            {
+                StrokeLabel.Text = tool is EditorTool.Blur or EditorTool.Pixelate ? "Сила" : "Толщина";
+            }
             if (ArtCanvas is not null)
             {
                 ArtCanvas.Cursor = tool switch
                 {
                     EditorTool.Text => Cursors.IBeam,
+                    EditorTool.Step => Cursors.Hand,
                     EditorTool.Eraser => Cursors.Hand,
                     _ => Cursors.Cross
                 };
@@ -65,6 +71,12 @@ public partial class EditorWindow : Window
         if (_tool == EditorTool.Text)
         {
             AddText(_startPoint);
+            return;
+        }
+
+        if (_tool == EditorTool.Step)
+        {
+            AddStep(_startPoint);
             return;
         }
 
@@ -141,6 +153,10 @@ public partial class EditorWindow : Window
         {
             ApplyCrop(_activeShape as Rectangle, _startPoint, end);
         }
+        else if (_tool is EditorTool.Blur or EditorTool.Pixelate)
+        {
+            ApplyImageEffect(_activeShape as Rectangle, _startPoint, end);
+        }
 
         _activeShape = null;
         e.Handled = true;
@@ -156,6 +172,15 @@ public partial class EditorWindow : Window
             {
                 Stroke = new SolidColorBrush(color),
                 StrokeThickness = thickness,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                Points = new PointCollection([start])
+            },
+            EditorTool.Brush => new Polyline
+            {
+                Stroke = new SolidColorBrush(color),
+                StrokeThickness = Math.Max(10, thickness * 2.5),
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
@@ -181,12 +206,25 @@ public partial class EditorWindow : Window
             },
             EditorTool.Rectangle => NewOutlinedRectangle(color, thickness),
             EditorTool.Ellipse => NewOutlinedEllipse(color, thickness),
+            EditorTool.Fill => new Rectangle
+            {
+                Fill = new SolidColorBrush(color),
+                Stroke = new SolidColorBrush(color),
+                StrokeThickness = 1
+            },
             EditorTool.Crop => new Rectangle
             {
                 Stroke = Brushes.White,
                 StrokeThickness = 2,
                 StrokeDashArray = new DoubleCollection([5, 4]),
                 Fill = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255))
+            },
+            EditorTool.Blur or EditorTool.Pixelate => new Rectangle
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(124, 92, 252)),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection([6, 4]),
+                Fill = new SolidColorBrush(Color.FromArgb(34, 124, 92, 252))
             },
             _ => null
         };
@@ -222,7 +260,7 @@ public partial class EditorWindow : Window
     {
         switch (shape)
         {
-            case Polyline polyline when _tool is EditorTool.Pen or EditorTool.Highlighter:
+            case Polyline polyline when _tool is EditorTool.Pen or EditorTool.Brush or EditorTool.Highlighter:
                 polyline.Points.Add(end);
                 break;
             case Polyline arrow when _tool == EditorTool.Arrow:
@@ -280,6 +318,43 @@ public partial class EditorWindow : Window
         ArtCanvas.Children.Add(text);
     }
 
+    private void AddStep(Point point)
+    {
+        PushUndoState();
+        var diameter = Math.Max(28, StrokeWidthSlider.Value * 4.5);
+        var color = SelectedColor();
+        var marker = new Grid
+        {
+            Width = diameter,
+            Height = diameter,
+            ToolTip = $"Шаг {_stepCounter}"
+        };
+        marker.Children.Add(new Ellipse
+        {
+            Fill = new SolidColorBrush(color),
+            Stroke = Brushes.White,
+            StrokeThickness = Math.Max(2, diameter / 14)
+        });
+        marker.Children.Add(new TextBlock
+        {
+            Text = (_stepCounter++).ToString(),
+            Foreground = GetReadableForeground(color),
+            FontSize = diameter * 0.52,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        Canvas.SetLeft(marker, Math.Clamp(point.X - diameter / 2, 0, Math.Max(0, ArtCanvas.Width - diameter)));
+        Canvas.SetTop(marker, Math.Clamp(point.Y - diameter / 2, 0, Math.Max(0, ArtCanvas.Height - diameter)));
+        ArtCanvas.Children.Add(marker);
+    }
+
+    private static Brush GetReadableForeground(Color background)
+    {
+        var luminance = (0.299 * background.R + 0.587 * background.G + 0.114 * background.B) / 255;
+        return luminance > 0.62 ? Brushes.Black : Brushes.White;
+    }
+
     private void EraseAt(Point point)
     {
         var hit = VisualTreeHelper.HitTest(ArtCanvas, point)?.VisualHit as DependencyObject;
@@ -328,6 +403,36 @@ public partial class EditorWindow : Window
         var cropped = new CroppedBitmap(composite, crop);
         cropped.Freeze();
         SetBaseBitmap(cropped);
+    }
+
+    private void ApplyImageEffect(Rectangle? preview, Point start, Point end)
+    {
+        if (preview is not null)
+        {
+            ArtCanvas.Children.Remove(preview);
+        }
+
+        var rect = Normalize(start, end);
+        if (rect.Width < 3 || rect.Height < 3)
+        {
+            RemoveLastUndoState();
+            return;
+        }
+
+        var composite = RenderComposite();
+        var area = new Int32Rect(
+            Math.Clamp((int)Math.Floor(rect.Left), 0, composite.PixelWidth - 1),
+            Math.Clamp((int)Math.Floor(rect.Top), 0, composite.PixelHeight - 1),
+            Math.Max(1, (int)Math.Ceiling(rect.Width)),
+            Math.Max(1, (int)Math.Ceiling(rect.Height)));
+        area.Width = Math.Min(area.Width, composite.PixelWidth - area.X);
+        area.Height = Math.Min(area.Height, composite.PixelHeight - area.Y);
+
+        var strength = (int)Math.Round(StrokeWidthSlider.Value);
+        var result = _tool == EditorTool.Blur
+            ? ImageEffectService.Blur(composite, area, Math.Max(3, strength))
+            : ImageEffectService.Pixelate(composite, area, Math.Max(6, strength * 2));
+        SetBaseBitmap(result);
     }
 
     private BitmapSource RenderComposite()
@@ -434,6 +539,35 @@ public partial class EditorWindow : Window
         {
             ScreenshotStorageService.SavePng(RenderComposite(), dialog.FileName);
             Title = $"MeowShot — {System.IO.Path.GetFileName(dialog.FileName)}";
+        }
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.Z when (Keyboard.Modifiers & ModifierKeys.Shift) != 0:
+            case Key.Y:
+                RedoButton_Click(sender, e);
+                e.Handled = true;
+                break;
+            case Key.Z:
+                UndoButton_Click(sender, e);
+                e.Handled = true;
+                break;
+            case Key.C:
+                CopyButton_Click(sender, e);
+                e.Handled = true;
+                break;
+            case Key.S:
+                SaveButton_Click(sender, e);
+                e.Handled = true;
+                break;
         }
     }
 
