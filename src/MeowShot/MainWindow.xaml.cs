@@ -94,7 +94,7 @@ public partial class MainWindow : Window
 
     private void AutoSaveCheckBox_Changed(object sender, RoutedEventArgs e) => UpdateEnabledStates();
     private void HistoryCheckBox_Changed(object sender, RoutedEventArgs e) => UpdateEnabledStates();
-    private void AfterCaptureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateEnabledStates();
+    private void AfterCaptureRadio_Checked(object sender, RoutedEventArgs e) => UpdateEnabledStates();
 
     private void UpdateEnabledStates()
     {
@@ -112,21 +112,25 @@ public partial class MainWindow : Window
 
     private void SelectAfterCaptureBehavior(AfterCaptureBehavior behavior)
     {
-        foreach (var item in AfterCaptureComboBox.Items.OfType<ComboBoxItem>())
+        foreach (var item in AfterCapturePanel.Children.OfType<RadioButton>())
         {
             if (string.Equals(item.Tag as string, behavior.ToString(), StringComparison.Ordinal))
             {
-                AfterCaptureComboBox.SelectedItem = item;
+                item.IsChecked = true;
                 return;
             }
         }
 
-        AfterCaptureComboBox.SelectedIndex = 0;
+        if (AfterCapturePanel.Children.OfType<RadioButton>().FirstOrDefault() is { } first)
+        {
+            first.IsChecked = true;
+        }
     }
 
     private AfterCaptureBehavior SelectedAfterCaptureBehavior()
     {
-        var value = (AfterCaptureComboBox?.SelectedItem as ComboBoxItem)?.Tag as string;
+        var value = AfterCapturePanel?.Children.OfType<RadioButton>()
+            .FirstOrDefault(item => item.IsChecked == true)?.Tag as string;
         return Enum.TryParse<AfterCaptureBehavior>(value, out var behavior)
             ? behavior
             : AfterCaptureBehavior.CopyAndNotify;

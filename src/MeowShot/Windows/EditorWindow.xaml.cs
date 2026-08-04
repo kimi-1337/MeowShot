@@ -22,12 +22,16 @@ public partial class EditorWindow : Window
     private bool _drawing;
     private bool _eraserChanged;
     private int _stepCounter = 1;
+    private bool _updatingZoom;
+    private bool _fitZoom = true;
 
     public EditorWindow(BitmapSource bitmap)
     {
         InitializeComponent();
         _baseBitmap = bitmap;
         SetBaseBitmap(bitmap);
+        UpdateHistoryButtons();
+        Loaded += (_, _) => Dispatcher.BeginInvoke(FitToWindow);
     }
 
     private void SetBaseBitmap(BitmapSource bitmap)
@@ -40,6 +44,15 @@ public partial class EditorWindow : Window
         ArtCanvas.Width = bitmap.PixelWidth;
         ArtCanvas.Height = bitmap.PixelHeight;
         ArtCanvas.Children.Add(BaseImage);
+        if (ImageSizeText is not null)
+        {
+            ImageSizeText.Text = $"{bitmap.PixelWidth} × {bitmap.PixelHeight} · PNG без потерь";
+        }
+
+        if (IsLoaded && _fitZoom)
+        {
+            Dispatcher.BeginInvoke(FitToWindow);
+        }
     }
 
     private void Tool_Checked(object sender, RoutedEventArgs e)
@@ -456,6 +469,7 @@ public partial class EditorWindow : Window
         }
 
         _redoStates.Clear();
+        UpdateHistoryButtons();
     }
 
     private void RemoveLastUndoState()
@@ -464,6 +478,7 @@ public partial class EditorWindow : Window
         {
             _undoStates.RemoveAt(_undoStates.Count - 1);
         }
+        UpdateHistoryButtons();
     }
 
     private void UndoButton_Click(object sender, RoutedEventArgs e)
@@ -477,6 +492,7 @@ public partial class EditorWindow : Window
         var index = _undoStates.Count - 1;
         RestoreState(_undoStates[index]);
         _undoStates.RemoveAt(index);
+        UpdateHistoryButtons();
     }
 
     private void RedoButton_Click(object sender, RoutedEventArgs e)
@@ -490,6 +506,19 @@ public partial class EditorWindow : Window
         var index = _redoStates.Count - 1;
         RestoreState(_redoStates[index]);
         _redoStates.RemoveAt(index);
+        UpdateHistoryButtons();
+    }
+
+    private void UpdateHistoryButtons()
+    {
+        if (UndoButton is not null)
+        {
+            UndoButton.IsEnabled = _undoStates.Count > 0;
+        }
+        if (RedoButton is not null)
+        {
+            RedoButton.IsEnabled = _redoStates.Count > 0;
+        }
     }
 
     private void RestoreState(byte[] bytes) => SetBaseBitmap(DecodePng(bytes));
@@ -540,6 +569,101 @@ public partial class EditorWindow : Window
             ScreenshotStorageService.SavePng(RenderComposite(), dialog.FileName);
             Title = $"MeowShot — {System.IO.Path.GetFileName(dialog.FileName)}";
         }
+    }
+
+    private void ColorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ColorPreview is not null)
+        {
+            ColorPreview.Background = new SolidColorBrush(SelectedColor());
+        }
+    }
+
+    private void StrokeWidthSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (StrokeValueText is not null)
+        {
+            StrokeValueText.Text = Math.Round(e.NewValue).ToString();
+        }
+    }
+
+    private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingZoom || ArtworkScaleTransform is null)
+        {
+            return;
+        }
+
+        _fitZoom = false;
+        ApplyZoom(e.NewValue);
+    }
+
+    private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
+    {
+        _fitZoom = false;
+        SetZoom(ZoomSlider.Value - 10);
+    }
+
+    private void ZoomInButton_Click(object sender, RoutedEventArgs e)
+    {
+        _fitZoom = false;
+        SetZoom(ZoomSlider.Value + 10);
+    }
+
+    private void FitButton_Click(object sender, RoutedEventArgs e)
+    {
+        _fitZoom = true;
+        FitToWindow();
+    }
+
+    private void ArtworkScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_fitZoom && IsLoaded)
+        {
+            Dispatcher.BeginInvoke(FitToWindow);
+        }
+    }
+
+    private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
+        {
+            return;
+        }
+
+        _fitZoom = false;
+        SetZoom(ZoomSlider.Value + (e.Delta > 0 ? 10 : -10));
+        e.Handled = true;
+    }
+
+    private void FitToWindow()
+    {
+        if (ArtworkScrollViewer is null || ArtCanvas.Width <= 0 || ArtCanvas.Height <= 0)
+        {
+            return;
+        }
+
+        var availableWidth = Math.Max(1, ArtworkScrollViewer.ViewportWidth - 28);
+        var availableHeight = Math.Max(1, ArtworkScrollViewer.ViewportHeight - 28);
+        var scale = Math.Min(1.0, Math.Min(availableWidth / ArtCanvas.Width, availableHeight / ArtCanvas.Height));
+        SetZoom(scale * 100);
+    }
+
+    private void SetZoom(double percent)
+    {
+        percent = Math.Clamp(percent, ZoomSlider.Minimum, ZoomSlider.Maximum);
+        _updatingZoom = true;
+        ZoomSlider.Value = percent;
+        _updatingZoom = false;
+        ApplyZoom(percent);
+    }
+
+    private void ApplyZoom(double percent)
+    {
+        var scale = Math.Clamp(percent, 10, 300) / 100;
+        ArtworkScaleTransform.ScaleX = scale;
+        ArtworkScaleTransform.ScaleY = scale;
+        ZoomText.Text = $"{Math.Round(percent)}%";
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)

@@ -9,6 +9,35 @@
         Cursor="Cross"
         KeyDown="Window_KeyDown"
         PreviewMouseRightButtonDown="Window_PreviewMouseRightButtonDown">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#FF393643" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.84" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.62" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid x:Name="RootGrid" ClipToBounds="True">
         <Image x:Name="DesktopImage" Stretch="Fill" />
         <Canvas x:Name="DimCanvas" Background="Transparent"
@@ -23,11 +52,14 @@
                 Padding="6"
                 CornerRadius="10"
                 Background="#F0202020"
-                Panel.ZIndex="10">
+                Panel.ZIndex="100">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="RectangleButton" Content="▭  Область" Tag="Rectangle" Click="ModeButton_Click" />
                 <Button x:Name="WindowButton" Content="▣  Окно" Tag="Window" Click="ModeButton_Click" />
                 <Button x:Name="ScreenButton" Content="▰  Экран" Tag="FullScreen" Click="ModeButton_Click" />
+                <Separator Margin="6,2" />
+                <Button x:Name="QuickActionsToggleButton" Click="QuickActionsToggleButton_Click"
+                        ToolTip="Переключить подтверждение снимка" />
                 <Separator Margin="6,2" />
                 <Button Content="✕" ToolTip="Отмена (Esc)" Click="CancelButton_Click" />
             </StackPanel>
@@ -41,13 +73,14 @@
                 CornerRadius="10"
                 Background="#F0202020"
                 Visibility="Collapsed"
-                Panel.ZIndex="12">
+                Panel.ZIndex="200"
+                IsHitTestVisible="True">
             <StackPanel Orientation="Horizontal">
-                <Button Content="✓  Готово" Click="CompleteButton_Click"
+                <Button Content="✓  Готово" Click="CompleteButton_Click" ClickMode="Press"
                         Background="#FF7C5CFC" Foreground="White" />
-                <Button Content="✎  Редактировать" Click="EditButton_Click" />
-                <Button Content="⇩  Сохранить" Click="SaveButton_Click" />
-                <Button Content="✕" ToolTip="Выбрать заново" Click="ResetSelectionButton_Click" />
+                <Button Content="✎  Редактировать" Click="EditButton_Click" ClickMode="Press" />
+                <Button Content="⇩  Сохранить" Click="SaveButton_Click" ClickMode="Press" />
+                <Button Content="✕" ToolTip="Выбрать заново" Click="ResetSelectionButton_Click" ClickMode="Press" />
             </StackPanel>
         </Border>
 

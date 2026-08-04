@@ -17,8 +17,7 @@ public partial class CaptureOverlayWindow : Window
     private readonly CaptureSession _session;
     private readonly NativeRect _virtualBounds;
     private readonly bool _captureAllMonitors;
-    private readonly bool _showQuickActions;
-    private readonly Rectangle[] _dimmers = new Rectangle[4];
+    private readonly System.Windows.Shapes.Path _dimLayer;
     private readonly Border _selectionBorder;
     private readonly Ellipse[] _handles = new Ellipse[8];
     private readonly Border _sizeBadge;
@@ -40,8 +39,7 @@ public partial class CaptureOverlayWindow : Window
         IReadOnlyList<CapturableWindow> windows,
         CaptureSession session,
         NativeRect virtualBounds,
-        bool captureAllMonitors,
-        bool showQuickActions)
+        bool captureAllMonitors)
     {
         InitializeComponent();
         _monitor = monitor;
@@ -49,14 +47,14 @@ public partial class CaptureOverlayWindow : Window
         _session = session;
         _virtualBounds = virtualBounds;
         _captureAllMonitors = captureAllMonitors;
-        _showQuickActions = showQuickActions;
         DesktopImage.Source = monitorImage;
 
-        for (var index = 0; index < _dimmers.Length; index++)
+        _dimLayer = new System.Windows.Shapes.Path
         {
-            _dimmers[index] = new Rectangle { Fill = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0)) };
-            DimCanvas.Children.Add(_dimmers[index]);
-        }
+            Fill = new SolidColorBrush(Color.FromArgb(145, 0, 0, 0)),
+            IsHitTestVisible = false
+        };
+        DimCanvas.Children.Add(_dimLayer);
 
         _selectionBorder = new Border
         {
@@ -101,13 +99,19 @@ public partial class CaptureOverlayWindow : Window
         DimCanvas.Children.Add(_sizeBadge);
 
         _session.ModeChanged += Session_ModeChanged;
+        _session.QuickActionsChanged += Session_QuickActionsChanged;
         SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) =>
         {
             ShowSelection(new Rect(0, 0, 0, 0));
             UpdateModeUi(_session.Mode);
+            UpdateQuickActionsUi();
         };
-        Closed += (_, _) => _session.ModeChanged -= Session_ModeChanged;
+        Closed += (_, _) =>
+        {
+            _session.ModeChanged -= Session_ModeChanged;
+            _session.QuickActionsChanged -= Session_QuickActionsChanged;
+        };
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -133,11 +137,34 @@ public partial class CaptureOverlayWindow : Window
         ClearSelection();
     }
 
+    private void Session_QuickActionsChanged(bool enabled)
+    {
+        UpdateQuickActionsUi();
+        if (!enabled && _selectionReady)
+        {
+            CompleteSelection(CaptureAction.Default);
+        }
+    }
+
+    private void UpdateQuickActionsUi()
+    {
+        QuickActionsToggleButton.Content = _session.ShowQuickActions
+            ? "✓  С подтверждением"
+            : "⚡  Сразу";
+        QuickActionsToggleButton.Background = _session.ShowQuickActions
+            ? new SolidColorBrush(Color.FromRgb(69, 64, 88))
+            : new SolidColorBrush(Color.FromRgb(124, 92, 252));
+        QuickActionsToggleButton.Foreground = Brushes.White;
+    }
+
     private void UpdateModeUi(CaptureMode mode)
     {
         RectangleButton.FontWeight = mode == CaptureMode.Rectangle ? FontWeights.Bold : FontWeights.Normal;
         WindowButton.FontWeight = mode == CaptureMode.Window ? FontWeights.Bold : FontWeights.Normal;
         ScreenButton.FontWeight = mode == CaptureMode.FullScreen ? FontWeights.Bold : FontWeights.Normal;
+        RectangleButton.Background = ModeBackground(mode == CaptureMode.Rectangle);
+        WindowButton.Background = ModeBackground(mode == CaptureMode.Window);
+        ScreenButton.Background = ModeBackground(mode == CaptureMode.FullScreen);
         Cursor = mode == CaptureMode.Rectangle ? Cursors.Cross : Cursors.Hand;
         HintText.Text = mode switch
         {
@@ -152,6 +179,10 @@ public partial class CaptureOverlayWindow : Window
         };
     }
 
+    private static Brush ModeBackground(bool selected) => new SolidColorBrush(selected
+        ? Color.FromRgb(124, 92, 252)
+        : Color.FromRgb(57, 54, 67));
+
     private void ModeButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: string value } && Enum.TryParse<CaptureMode>(value, out var mode))
@@ -161,6 +192,12 @@ public partial class CaptureOverlayWindow : Window
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => _session.Cancel();
+
+    private void QuickActionsToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        _session.SetQuickActions(!_session.ShowQuickActions);
+        e.Handled = true;
+    }
 
     private void DimCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -259,7 +296,7 @@ public partial class CaptureOverlayWindow : Window
             _interaction = SelectionInteraction.None;
             ShowSelection(_selection);
             UpdateModeUi(CaptureMode.Rectangle);
-            if (_showQuickActions)
+            if (_session.ShowQuickActions)
             {
                 QuickActionsPanel.Visibility = Visibility.Visible;
             }
@@ -293,10 +330,7 @@ public partial class CaptureOverlayWindow : Window
             return;
         }
 
-        SetRect(_dimmers[0], new Rect(0, 0, ActualWidth, clipped.Top));
-        SetRect(_dimmers[1], new Rect(0, clipped.Bottom, ActualWidth, Math.Max(0, ActualHeight - clipped.Bottom)));
-        SetRect(_dimmers[2], new Rect(0, clipped.Top, clipped.Left, clipped.Height));
-        SetRect(_dimmers[3], new Rect(clipped.Right, clipped.Top, Math.Max(0, ActualWidth - clipped.Right), clipped.Height));
+        _dimLayer.Data = CreateDimGeometry(clipped);
         SetRect(_selectionBorder, clipped);
         _selectionBorder.Visibility = Visibility.Visible;
         UpdateSelectionAdornments(clipped);
@@ -304,11 +338,7 @@ public partial class CaptureOverlayWindow : Window
 
     private void ClearSelection()
     {
-        SetRect(_dimmers[0], new Rect(0, 0, ActualWidth, ActualHeight));
-        for (var index = 1; index < _dimmers.Length; index++)
-        {
-            SetRect(_dimmers[index], Rect.Empty);
-        }
+        _dimLayer.Data = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight));
 
         _selectionBorder.Visibility = Visibility.Collapsed;
         _sizeBadge.Visibility = Visibility.Collapsed;
@@ -333,6 +363,14 @@ public partial class CaptureOverlayWindow : Window
         Canvas.SetTop(element, rect.IsEmpty ? 0 : rect.Top);
         element.Width = rect.IsEmpty ? 0 : Math.Max(0, rect.Width);
         element.Height = rect.IsEmpty ? 0 : Math.Max(0, rect.Height);
+    }
+
+    private Geometry CreateDimGeometry(Rect selection)
+    {
+        var geometry = new GeometryGroup { FillRule = FillRule.EvenOdd };
+        geometry.Children.Add(new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight)));
+        geometry.Children.Add(new RectangleGeometry(selection));
+        return geometry;
     }
 
     private NativeRect LocalToAbsolute(Rect local)

@@ -39,8 +39,13 @@ public sealed class CaptureCoordinator : IDisposable
             }
 
             var windows = ScreenCaptureService.GetCapturableWindows();
-            var session = new CaptureSession();
+            var session = new CaptureSession(_settingsService.Current.ShowQuickActions);
             session.Finished += (bounds, action) => Finish(bounds, action);
+            session.QuickActionsChanged += enabled =>
+            {
+                _settingsService.Current.ShowQuickActions = enabled;
+                _settingsService.Save();
+            };
 
             foreach (var monitor in monitors.OrderBy(item => item.IsPrimary ? 0 : 1))
             {
@@ -51,8 +56,7 @@ public sealed class CaptureCoordinator : IDisposable
                     windows,
                     session,
                     _virtualBounds,
-                    _settingsService.Current.CaptureAllMonitorsInFullScreenMode,
-                    _settingsService.Current.ShowQuickActions);
+                    _settingsService.Current.CaptureAllMonitorsInFullScreenMode);
                 _overlays.Add(overlay);
                 overlay.Show();
             }
