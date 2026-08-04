@@ -1,37 +1,81 @@
 <Window x:Class="MeowShot.Windows.CaptureToastWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Width="410" Height="156"
+        Width="410" Height="164"
         WindowStyle="None" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True"
         MouseLeftButtonUp="Window_MouseLeftButtonUp"
         MouseEnter="Window_MouseEnter" MouseLeave="Window_MouseLeave">
+    <Window.Resources>
+        <Style x:Key="ToastButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#FF393548" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.84" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.64" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border Margin="8" Padding="14" CornerRadius="14"
-            Background="#FA211F2A" BorderBrush="#FF4A4560" BorderThickness="1">
+            Background="#FC211F2A" BorderBrush="#FF4A4560" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.55" />
         </Border.Effect>
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="74" />
+                <ColumnDefinition Width="58" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="30" />
             </Grid.ColumnDefinitions>
-            <Border Width="62" Height="62" CornerRadius="13" ClipToBounds="True"
-                    VerticalAlignment="Top" Background="#FF332F43">
-                <Image Source="/MeowShot;component/Assets/meowshot-logo.png" Stretch="UniformToFill" />
+
+            <Border Width="48" Height="48" CornerRadius="10" ClipToBounds="True"
+                    HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FF332F43">
+                <Image x:Name="ToastIcon" Stretch="UniformToFill" />
             </Border>
-            <StackPanel Grid.Column="1">
-                <TextBlock Text="Снимок готов" Foreground="White" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock x:Name="DetailsText" Foreground="#FFB9B4C7" FontSize="12"
-                           Margin="0,3,0,8" TextWrapping="Wrap" />
-                <StackPanel Orientation="Horizontal">
+
+            <Grid Grid.Column="1" Margin="8,0,6,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="Снимок готов" Foreground="White" FontSize="16" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" x:Name="DetailsText" Foreground="#FFB9B4C7" FontSize="12"
+                           Margin="0,3,0,10" TextWrapping="Wrap" />
+                <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Редактировать" Click="EditButton_Click"
-                            Background="#FF7C5CFC" Foreground="White" />
+                            Background="#FF7C5CFC" Style="{StaticResource ToastButtonStyle}" />
                     <Button Content="Сохранить как…" Click="SaveButton_Click"
-                            Background="#FF393548" Foreground="White" />
+                            Style="{StaticResource ToastButtonStyle}" />
                 </StackPanel>
-            </StackPanel>
+            </Grid>
+
+            <Button Grid.Column="2" Width="28" Height="28" Padding="0" Margin="0"
+                    VerticalAlignment="Top" Content="×" FontSize="18"
+                    ToolTip="Закрыть уведомление" Click="CloseButton_Click"
+                    Background="Transparent" Style="{StaticResource ToastButtonStyle}" />
         </Grid>
     </Border>
 </Window>

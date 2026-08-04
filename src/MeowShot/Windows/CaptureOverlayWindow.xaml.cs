@@ -25,6 +25,7 @@ public partial class CaptureOverlayWindow : Window
     private Point _interactionStart;
     private Rect _interactionOriginal;
     private Rect _selection;
+    private NativeRect? _confirmedBounds;
     private SelectionInteraction _interaction;
     private bool _dragging;
     private bool _selectionReady;
@@ -227,7 +228,7 @@ public partial class CaptureOverlayWindow : Window
             if (_interaction == SelectionInteraction.Creating)
             {
                 _selection = new Rect(point, point);
-                ShowSelection(_selection);
+                HideSelectionVisuals();
             }
         }
         else if (_session.Mode == CaptureMode.Window)
@@ -294,6 +295,7 @@ public partial class CaptureOverlayWindow : Window
         {
             _selectionReady = true;
             _interaction = SelectionInteraction.None;
+            _confirmedBounds = LocalToAbsolute(_selection);
             ShowSelection(_selection);
             UpdateModeUi(CaptureMode.Rectangle);
             if (_session.ShowQuickActions)
@@ -326,7 +328,7 @@ public partial class CaptureOverlayWindow : Window
         var clipped = Rect.Intersect(selection, new Rect(0, 0, ActualWidth, ActualHeight));
         if (clipped.IsEmpty || clipped.Width <= 0 || clipped.Height <= 0)
         {
-            ClearSelection();
+            HideSelectionVisuals();
             return;
         }
 
@@ -338,6 +340,19 @@ public partial class CaptureOverlayWindow : Window
 
     private void ClearSelection()
     {
+        HideSelectionVisuals();
+        _selection = Rect.Empty;
+        _confirmedBounds = null;
+        _selectionReady = false;
+        _interaction = SelectionInteraction.None;
+        if (_session.Mode == CaptureMode.Rectangle)
+        {
+            Cursor = Cursors.Cross;
+        }
+    }
+
+    private void HideSelectionVisuals()
+    {
         _dimLayer.Data = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight));
 
         _selectionBorder.Visibility = Visibility.Collapsed;
@@ -346,14 +361,6 @@ public partial class CaptureOverlayWindow : Window
         foreach (var handle in _handles)
         {
             handle.Visibility = Visibility.Collapsed;
-        }
-
-        _selection = Rect.Empty;
-        _selectionReady = false;
-        _interaction = SelectionInteraction.None;
-        if (_session.Mode == CaptureMode.Rectangle)
-        {
-            Cursor = Cursors.Cross;
         }
     }
 
@@ -517,9 +524,9 @@ public partial class CaptureOverlayWindow : Window
 
     private void CompleteSelection(CaptureAction action)
     {
-        if (_selectionReady && _selection.Width >= 3 && _selection.Height >= 3)
+        if (_selectionReady && _confirmedBounds is { Width: >= 3, Height: >= 3 } bounds)
         {
-            _session.Complete(LocalToAbsolute(_selection), action);
+            _session.Complete(bounds, action);
         }
     }
 

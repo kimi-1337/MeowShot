@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace MeowShot.Windows;
@@ -20,8 +21,26 @@ public partial class CaptureToastWindow : Window
         DetailsText.Text = savedPath is null
             ? $"{width} × {height} · скопирован в буфер"
             : $"{width} × {height} · скопирован и сохранён";
+        LoadIcon();
         Loaded += OnLoaded;
+        Closed += (_, _) => _timer.Stop();
         _timer.Tick += (_, _) => Close();
+    }
+
+    private void LoadIcon()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Assets", "meowshot-icon.png");
+            if (File.Exists(path))
+            {
+                ToastIcon.Source = new BitmapImage(new Uri(path, UriKind.Absolute));
+            }
+        }
+        catch
+        {
+            // The colored placeholder remains visible if the optional image cannot be loaded.
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -57,6 +76,12 @@ public partial class CaptureToastWindow : Window
 
     private void EditButton_Click(object sender, RoutedEventArgs e) => InvokeAndClose(_edit);
     private void SaveButton_Click(object sender, RoutedEventArgs e) => InvokeAndClose(_save);
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        _timer.Stop();
+        Close();
+        e.Handled = true;
+    }
     private void Window_MouseEnter(object sender, MouseEventArgs e) => _timer.Stop();
     private void Window_MouseLeave(object sender, MouseEventArgs e) => _timer.Start();
 

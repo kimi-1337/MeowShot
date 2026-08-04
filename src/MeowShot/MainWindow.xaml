@@ -170,7 +170,7 @@
                     <TextBlock Text="by kimi" Foreground="#FFDCA5FF" FontWeight="SemiBold" />
                     <Border Background="#267C5CFC" BorderBrush="#667C5CFC" BorderThickness="1"
                             CornerRadius="8" Padding="9,5" Margin="0,14,0,0" HorizontalAlignment="Left">
-                        <TextBlock Text="Версия 0.1.2" Foreground="#FFD9D0FF" />
+                        <TextBlock Text="Версия 0.1.3" Foreground="#FFD9D0FF" />
                     </Border>
                 </StackPanel>
 
@@ -220,11 +220,19 @@
                                              GroupName="AfterCapture" Checked="AfterCaptureRadio_Checked"
                                              Style="{StaticResource BehaviorRadioStyle}" />
                             </StackPanel>
-                            <CheckBox x:Name="NotificationsCheckBox" Margin="0,11,0,5"
-                                      Content="Показывать уведомления со снимком и действиями" />
-                            <CheckBox x:Name="QuickActionsCheckBox"
+                            <CheckBox x:Name="QuickActionsCheckBox" Margin="0,11,0,5"
                                       Content="Спрашивать действие после выделения области" />
                             <TextBlock Text="Если выключено, снимок создаётся сразу после отпускания кнопки мыши. Режим также переключается на верхней панели захвата."
+                                       Style="{StaticResource CaptionStyle}" Margin="28,1,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Уведомления" Style="{StaticResource SectionTitleStyle}" />
+                            <CheckBox x:Name="NotificationsCheckBox"
+                                      Content="Показывать уведомление после каждого снимка" />
+                            <TextBlock Text="Если выключено, снимок всё равно копируется в буфер, но системное уведомление и карточка MeowShot не показываются."
                                        Style="{StaticResource CaptionStyle}" Margin="28,1,0,0" />
                         </StackPanel>
                     </Border>
